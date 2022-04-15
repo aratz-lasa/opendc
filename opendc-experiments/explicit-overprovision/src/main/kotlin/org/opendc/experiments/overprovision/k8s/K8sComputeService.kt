@@ -67,7 +67,7 @@ class K8sComputeService(private val client: ComputeClient,
                         val workload = SimTraceWorkload(entry.trace, workloadOffset)
 
                         val server = k8sClient.newServer(
-                            entry.name,
+                            "k8s-"+entry.name,
                             image,
                             k8sClient.newFlavor(
                                 entry.name,
@@ -140,6 +140,6 @@ class K8sComputeService(private val client: ComputeClient,
 
     private fun createService(scheduler: ComputeScheduler, schedulingQuantum: Duration): ComputeService {
         val meterProvider = telemetry.createMeterProvider(scheduler)
-        return ComputeService(context, clock, meterProvider, scheduler, schedulingQuantum)
+        return ComputeService(context, clock, meterProvider, scheduler, schedulingQuantum, "k8s")
     }
 }

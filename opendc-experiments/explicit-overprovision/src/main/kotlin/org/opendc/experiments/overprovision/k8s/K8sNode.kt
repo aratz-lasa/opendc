@@ -97,7 +97,7 @@ class K8sNode(
 
     override val state: HostState
         get() = _state
-    private var _state: HostState = HostState.DOWN
+    private var _state: HostState = HostState.UP
         set(value) {
             if (value != field) {
                 listeners.forEach { it.onStateChanged(this, value) }

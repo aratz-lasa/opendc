@@ -82,8 +82,9 @@ public interface ComputeService : AutoCloseable {
             meterProvider: MeterProvider,
             scheduler: ComputeScheduler,
             schedulingQuantum: Duration = Duration.ofMinutes(5),
+            name: String = "default"
         ): ComputeService {
-            return ComputeServiceImpl(context, clock, meterProvider, scheduler, schedulingQuantum)
+            return ComputeServiceImpl(context, clock, meterProvider, scheduler, schedulingQuantum, name)
         }
     }
 }

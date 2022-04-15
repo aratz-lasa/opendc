@@ -172,5 +172,5 @@ internal class InternalServer(
 
     override fun hashCode(): Int = uid.hashCode()
 
-    override fun toString(): String = "Server[uid=$uid,state=$state]"
+    override fun toString(): String = "Server[name=$name,uid=$uid,state=$state]"
 }

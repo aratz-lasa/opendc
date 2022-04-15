@@ -22,7 +22,7 @@ public class ExplicitOverprovisionExperiment : Experiment(name = "small") {
         Topology("base")
     )
     val workloadTrace: ComputeWorkload by anyOf(
-        trace("bitbrains-small").sampleByLoad(0.1),
+        trace("bitbrains-small").sampleByLoad(1.0),
     )
     val tenantAmount: Int by anyOf(
         1

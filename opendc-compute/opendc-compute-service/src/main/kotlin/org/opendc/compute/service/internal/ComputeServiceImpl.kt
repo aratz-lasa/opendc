@@ -56,7 +56,8 @@ internal class ComputeServiceImpl(
     private val clock: Clock,
     meterProvider: MeterProvider,
     private val scheduler: ComputeScheduler,
-    schedulingQuantum: Duration
+    schedulingQuantum: Duration,
+    private val name: String = "default"
 ) : ComputeService, HostListener {
     /**
      * The [CoroutineScope] of the service bounded by the lifecycle of the service.
@@ -146,7 +147,7 @@ internal class ComputeServiceImpl(
     private val _serversPendingAttr = Attributes.of(AttributeKey.stringKey("state"), "pending")
     private val _serversActiveAttr = Attributes.of(AttributeKey.stringKey("state"), "active")
 
-    /**
+    /**k8s
      * The [Pacer] to use for scheduling the scheduler cycles.
      */
     private val pacer = Pacer(scope.coroutineContext, clock, schedulingQuantum.toMillis(), ::doSchedule)
@@ -327,7 +328,7 @@ internal class ComputeServiceImpl(
     }
 
     internal fun schedule(server: InternalServer): SchedulingRequest {
-        logger.debug { "Enqueueing server ${server.uid} to be assigned to host." }
+        logger.debug { "Enqueueing server ${server.name}(${server.uid}) to be assigned to host." }
         val now = clock.millis()
         val request = SchedulingRequest(server, now)
 

@@ -38,7 +38,7 @@ public interface FlowConsumer {
     /**
      * The flow capacity of this consumer.
      */
-    public val capacity: Double
+    public var capacity: Double
 
     /**
      * The current flow rate of the consumer.

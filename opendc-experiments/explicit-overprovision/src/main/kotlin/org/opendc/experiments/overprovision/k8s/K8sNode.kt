@@ -1,26 +1,4 @@
-/*
- * Copyright (c) 2020 AtLarge Research
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
-package org.opendc.compute.simulator
+package org.opendc.experiments.overprovision.k8s
 
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
@@ -33,10 +11,17 @@ import mu.KotlinLogging
 import org.opendc.compute.api.Flavor
 import org.opendc.compute.api.Server
 import org.opendc.compute.api.ServerState
-import org.opendc.compute.service.driver.*
+import org.opendc.compute.service.driver.Host
+import org.opendc.compute.service.driver.HostListener
+import org.opendc.compute.service.driver.HostModel
+import org.opendc.compute.service.driver.HostState
+import org.opendc.compute.simulator.SimHost
+import org.opendc.compute.simulator.SimMetaWorkloadMapper
+import org.opendc.compute.simulator.SimWorkloadMapper
 import org.opendc.compute.simulator.internal.Guest
 import org.opendc.compute.simulator.internal.GuestListener
-import org.opendc.simulator.compute.*
+import org.opendc.simulator.compute.SimBareMetalMachine
+import org.opendc.simulator.compute.SimMachineContext
 import org.opendc.simulator.compute.kernel.SimHypervisor
 import org.opendc.simulator.compute.kernel.SimHypervisorProvider
 import org.opendc.simulator.compute.kernel.cpufreq.PerformanceScalingGovernor
@@ -52,10 +37,7 @@ import org.opendc.simulator.flow.FlowEngine
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
-/**
- * A [Host] that is simulates virtual machines on a physical machine using [SimHypervisor].
- */
-public class SimHost(
+class K8sNode(
     override val uid: UUID,
     override val name: String,
     model: MachineModel,
@@ -69,7 +51,8 @@ public class SimHost(
     private val mapper: SimWorkloadMapper = SimMetaWorkloadMapper(),
     interferenceDomain: VmInterferenceDomain? = null,
     private val optimize: Boolean = false
-) : Host, AutoCloseable {
+) : SimWorkload, Host, AutoCloseable {
+
     /**
      * The [CoroutineScope] of the host bounded by the lifecycle of the host.
      */
@@ -104,7 +87,7 @@ public class SimHost(
      * The hypervisor to run multiple workloads.
      */
     public val hypervisor: SimHypervisor = hypervisorProvider
-        .create(engine, scalingGovernor = scalingGovernor, interferenceDomain = interferenceDomain)
+        .create(engine, scalingGovernor = null, interferenceDomain = null)
 
     /**
      * The virtual machines running on the hypervisor.
@@ -129,58 +112,12 @@ public class SimHost(
      */
     private val guestListener = object : GuestListener {
         override fun onStart(guest: Guest) {
-            listeners.forEach { it.onStateChanged(this@SimHost, guest.server, guest.state) }
+            listeners.forEach { it.onStateChanged(this@K8sNode, guest.server, guest.state) }
         }
 
         override fun onStop(guest: Guest) {
-            listeners.forEach { it.onStateChanged(this@SimHost, guest.server, guest.state) }
+            listeners.forEach { it.onStateChanged(this@K8sNode, guest.server, guest.state) }
         }
-    }
-
-    init {
-        launch()
-
-        meter.upDownCounterBuilder("system.guests")
-            .setDescription("Number of guests on this host")
-            .setUnit("1")
-            .buildWithCallback(::collectGuests)
-        meter.gaugeBuilder("system.cpu.limit")
-            .setDescription("Amount of CPU resources available to the host")
-            .buildWithCallback(::collectCpuLimit)
-        meter.gaugeBuilder("system.cpu.demand")
-            .setDescription("Amount of CPU resources the guests would use if there were no CPU contention or CPU limits")
-            .setUnit("MHz")
-            .buildWithCallback { result -> result.record(hypervisor.cpuDemand) }
-        meter.gaugeBuilder("system.cpu.usage")
-            .setDescription("Amount of CPU resources used by the host")
-            .setUnit("MHz")
-            .buildWithCallback { result -> result.record(hypervisor.cpuUsage) }
-        meter.gaugeBuilder("system.cpu.utilization")
-            .setDescription("Utilization of the CPU resources of the host")
-            .setUnit("%")
-            .buildWithCallback { result -> result.record(hypervisor.cpuUsage / _cpuLimit) }
-        meter.counterBuilder("system.cpu.time")
-            .setDescription("Amount of CPU time spent by the host")
-            .setUnit("s")
-            .buildWithCallback(::collectCpuTime)
-        meter.gaugeBuilder("system.power.usage")
-            .setDescription("Power usage of the host ")
-            .setUnit("W")
-            .buildWithCallback { result -> result.record(machine.powerUsage) }
-        meter.counterBuilder("system.power.total")
-            .setDescription("Amount of energy used by the CPU")
-            .setUnit("J")
-            .ofDoubles()
-            .buildWithCallback { result -> result.record(machine.energyUsage) }
-        meter.counterBuilder("system.time")
-            .setDescription("The uptime of the host")
-            .setUnit("s")
-            .buildWithCallback(::collectUptime)
-        meter.gaugeBuilder("system.time.boot")
-            .setDescription("The boot time of the host")
-            .setUnit("1")
-            .ofLongs()
-            .buildWithCallback(::collectBootTime)
     }
 
     override fun canFit(server: Server): Boolean {
@@ -251,6 +188,8 @@ public class SimHost(
 
     override fun hashCode(): Int = uid.hashCode()
 
+
+
     override fun equals(other: Any?): Boolean {
         return other is SimHost && uid == other.uid
     }
@@ -268,8 +207,6 @@ public class SimHost(
     public suspend fun recover() {
         updateUptime()
 
-        launch()
-
         // Wait for the hypervisor to launch before recovering the guests
         yield()
 
@@ -282,37 +219,6 @@ public class SimHost(
      * The [Job] that represents the machine running the hypervisor.
      */
     private var _ctx: SimMachineContext? = null
-
-    /**
-     * Launch the hypervisor.
-     */
-    private fun launch() {
-        check(_ctx == null) { "Concurrent hypervisor running" }
-
-        // Launch hypervisor onto machine
-        _ctx = machine.startWorkload(object : SimWorkload {
-            override fun onStart(ctx: SimMachineContext) {
-                try {
-                    _bootTime = clock.millis()
-                    _state = HostState.UP
-                    hypervisor.onStart(ctx)
-                } catch (cause: Throwable) {
-                    _state = HostState.DOWN
-                    _ctx = null
-                    throw cause
-                }
-            }
-
-            override fun onStop(ctx: SimMachineContext) {
-                try {
-                    hypervisor.onStop(ctx)
-                } finally {
-                    _state = HostState.DOWN
-                    _ctx = null
-                }
-            }
-        })
-    }
 
     /**
      * Reset the machine.
@@ -488,5 +394,13 @@ public class SimHost(
         for (i in guests.indices) {
             guests[i].collectBootTime(result)
         }
+    }
+
+    override fun onStart(ctx: SimMachineContext) {
+        hypervisor.onStart(ctx)
+    }
+
+    override fun onStop(ctx: SimMachineContext) {
+        hypervisor.onStop(ctx)
     }
 }

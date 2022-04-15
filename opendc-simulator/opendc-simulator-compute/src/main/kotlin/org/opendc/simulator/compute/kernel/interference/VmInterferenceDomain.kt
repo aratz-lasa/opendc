@@ -56,4 +56,17 @@ public interface VmInterferenceDomain : InterferenceDomain {
      * @param key The key of the virtual machine that wants to leave the domain.
      */
     public fun leave(key: InterferenceKey)
+
+    /**
+     * Add callback for notifying when a interference performance score
+     * changes.
+     *
+     * @param listener The function to be called when a score changes.
+     * It receives the server name and the new performance score.
+     */
+    public fun addListener(listener: InterferenceListener)
+}
+
+public interface InterferenceListener{
+    public fun onInterference(newScore: Pair<String, Double>)
 }

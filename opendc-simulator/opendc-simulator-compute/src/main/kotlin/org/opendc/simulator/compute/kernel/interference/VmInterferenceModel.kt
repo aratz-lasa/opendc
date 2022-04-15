@@ -24,6 +24,7 @@ package org.opendc.simulator.compute.kernel.interference
 
 import org.opendc.simulator.flow.interference.InterferenceKey
 import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * An interference model that models the resource interference between virtual machines on a host.
@@ -210,10 +211,19 @@ public class VmInterferenceModel private constructor(
          */
         private val keys = HashMap<Int, InterferenceKeyImpl>()
 
+        private val idMappingReverse = mutableMapOf<Int, String>().also {
+            idMapping.forEach{(k,v)->it.put(v,k)}
+        }.toMap()
+
         /**
          * The set of keys active in this domain.
          */
         private val activeKeys = ArrayList<InterferenceKeyImpl>()
+
+        /**
+         * The set of callbacks to be called when performance score changes
+         */
+        private val listeners = ArrayList<InterferenceListener>()
 
         override fun createKey(id: String): InterferenceKey? {
             val intId = idMapping[id] ?: return null
@@ -230,6 +240,11 @@ public class VmInterferenceModel private constructor(
             }
 
             keys.remove(key.id)
+        }
+
+        fun getKey(id: String) : InterferenceKey?{
+            val intId = idMapping[id] ?: return null
+            return keys.get(intId)
         }
 
         override fun join(key: InterferenceKey) {
@@ -251,6 +266,10 @@ public class VmInterferenceModel private constructor(
                 activeKeys.remove(key)
                 computeActiveGroups(key.id)
             }
+        }
+
+        override fun addListener(listener: InterferenceListener) {
+            listeners.add(listener)
         }
 
         override fun apply(key: InterferenceKey?, load: Double): Double {
@@ -278,7 +297,6 @@ public class VmInterferenceModel private constructor(
                 val mid = low + high ushr 1
                 val midGroup = groups[mid]
                 val target = targets[midGroup]
-
                 if (target < load) {
                     low = mid + 1
                     group = midGroup
@@ -293,9 +311,23 @@ public class VmInterferenceModel private constructor(
             }
 
             return if (group >= 0 && random.nextInt(members[group].size) == 0) {
+                callListeners(key, score)
                 score
             } else {
+                callListeners(key, score)
                 1.0
+            }
+        }
+
+        fun callListeners(key: InterferenceKey, score: Double){
+            if (key !is InterferenceKeyImpl) {
+                return
+            }
+            val serverName = idMappingReverse[key.id]
+            serverName?.let{
+                for (l in listeners){
+                    l.onInterference(Pair(serverName, score))
+                }
             }
         }
 

@@ -112,7 +112,7 @@ public class FlowForwarder(
     override val isActive: Boolean
         get() = delegate != null
 
-    override val capacity: Double
+    override var capacity: Double = 0.0
         get() = _ctx.capacity
 
     override val rate: Double

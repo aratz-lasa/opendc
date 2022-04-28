@@ -51,7 +51,7 @@ import kotlin.math.max
  * @param scheduler The scheduler implementation to use.
  * @param schedulingQuantum The interval between scheduling cycles.
  */
-internal class ComputeServiceImpl(
+public class ComputeServiceImpl(
     private val context: CoroutineContext,
     private val clock: Clock,
     meterProvider: MeterProvider,
@@ -414,6 +414,7 @@ internal class ComputeServiceImpl(
             scope.launch {
                 try {
                     server.host = host
+                    server.hv = hv
                     host.spawn(server)
                     activeServers[server] = host
 

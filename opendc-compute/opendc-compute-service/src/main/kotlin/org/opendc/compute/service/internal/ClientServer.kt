@@ -32,8 +32,14 @@ import java.util.*
 /**
  * A [Server] implementation that is passed to clients but delegates its implementation to another class.
  */
-internal class ClientServer(private val delegate: Server) : Server, ServerWatcher {
+public class ClientServer(private val delegate: InternalServer) : Server, ServerWatcher {
     private val watchers = mutableListOf<ServerWatcher>()
+
+    public var hv: HostView?
+        get() = delegate.hv
+        set(value) {
+            delegate.hv = value
+        }
 
     override val uid: UUID = delegate.uid
 

@@ -100,4 +100,6 @@ public interface Host {
      * Remove a [HostListener] from this host.
      */
     public fun removeListener(listener: HostListener)
+
+    public fun predictInterference(interferenceId: String) : Double
 }

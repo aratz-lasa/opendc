@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import org.opendc.compute.api.ComputeClient
 import org.opendc.compute.api.Server
 import org.opendc.compute.service.ComputeService
+import org.opendc.compute.service.internal.ClientServer
 import org.opendc.compute.service.scheduler.ComputeScheduler
 import org.opendc.compute.simulator.SimHost
 import org.opendc.compute.workload.VirtualMachine
@@ -133,6 +134,7 @@ class K8sComputeService(private val client: ComputeClient,
             meta = mapOf("workload" to host)
         )
         servers.add(server)
+        if (server is ClientServer) host.server = server
         k8s.addHost(host)
 
         return host

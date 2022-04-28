@@ -28,7 +28,7 @@ import java.util.*
 /**
  * Internal stateful representation of an [Image].
  */
-internal class InternalImage(
+public class InternalImage(
     private val service: ComputeServiceImpl,
     override val uid: UUID,
     override val name: String,

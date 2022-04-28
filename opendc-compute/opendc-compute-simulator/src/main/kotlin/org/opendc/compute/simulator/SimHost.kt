@@ -67,7 +67,7 @@ public class SimHost(
     scalingGovernor: ScalingGovernor = PerformanceScalingGovernor(),
     powerDriver: PowerDriver = SimplePowerDriver(ConstantPowerModel(0.0)),
     private val mapper: SimWorkloadMapper = SimMetaWorkloadMapper(),
-    interferenceDomain: VmInterferenceDomain? = null,
+    private val interferenceDomain: VmInterferenceDomain? = null,
     private val optimize: Boolean = false
 ) : Host, AutoCloseable {
     /**
@@ -488,5 +488,9 @@ public class SimHost(
         for (i in guests.indices) {
             guests[i].collectBootTime(result)
         }
+    }
+
+    override fun predictInterference(interferenceId: String) : Double{
+        return 0.0
     }
 }

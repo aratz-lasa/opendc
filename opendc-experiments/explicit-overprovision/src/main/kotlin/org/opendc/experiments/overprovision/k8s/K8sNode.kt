@@ -11,6 +11,7 @@ import mu.KotlinLogging
 import org.opendc.compute.api.Flavor
 import org.opendc.compute.api.Server
 import org.opendc.compute.api.ServerState
+import org.opendc.compute.service.internal.ClientServer
 import org.opendc.compute.service.driver.Host
 import org.opendc.compute.service.driver.HostListener
 import org.opendc.compute.service.driver.HostModel
@@ -49,10 +50,11 @@ class K8sNode(
     scalingGovernor: ScalingGovernor = PerformanceScalingGovernor(),
     powerDriver: PowerDriver = SimplePowerDriver(ConstantPowerModel(0.0)),
     private val mapper: SimWorkloadMapper = SimMetaWorkloadMapper(),
-    interferenceDomain: VmInterferenceDomain? = null,
+    private val interferenceDomain: VmInterferenceDomain? = null,
     private val optimize: Boolean = false
 ) : SimWorkload, Host, AutoCloseable {
 
+    public var server: ClientServer? = null
     /**
      * The [CoroutineScope] of the host bounded by the lifecycle of the host.
      */
@@ -402,5 +404,19 @@ class K8sNode(
 
     override fun onStop(ctx: SimMachineContext) {
         hypervisor.onStop(ctx)
+    }
+
+    public override fun predictInterference(interferenceId: String) : Double{
+        if (interferenceDomain != null){
+            val key = interferenceDomain.createKey(interferenceId)
+            if (key != null){
+                interferenceDomain.join(key)
+                val interference = interferenceDomain.apply(key, 1.0)
+                interferenceDomain.leave(key)
+                return interference
+            }
+            return 0.0
+        }
+        return 0.0
     }
 }

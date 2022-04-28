@@ -311,10 +311,10 @@ public class VmInterferenceModel private constructor(
             }
 
             return if (group >= 0 && random.nextInt(members[group].size) == 0) {
-                callListeners(key, score)
+                //callListeners(key, score)
                 score
             } else {
-                callListeners(key, score)
+                //callListeners(key, 1.0)
                 1.0
             }
         }

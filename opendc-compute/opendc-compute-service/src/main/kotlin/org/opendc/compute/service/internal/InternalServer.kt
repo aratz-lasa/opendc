@@ -33,7 +33,7 @@ import java.util.UUID
 /**
  * Internal implementation of the [Server] interface.
  */
-internal class InternalServer(
+public class InternalServer(
     private val service: ComputeServiceImpl,
     override val uid: UUID,
     override val name: String,
@@ -42,6 +42,9 @@ internal class InternalServer(
     override val labels: MutableMap<String, String>,
     override val meta: MutableMap<String, Any>
 ) : Server {
+
+    public var hv: HostView? = null
+
     /**
      * The logger instance of this server.
      */

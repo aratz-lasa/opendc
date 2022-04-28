@@ -28,7 +28,7 @@ import java.util.*
 /**
  * Internal stateful representation of a [Flavor].
  */
-internal class InternalFlavor(
+public class InternalFlavor(
     private val service: ComputeServiceImpl,
     override val uid: UUID,
     name: String,

@@ -1,5 +1,6 @@
 package org.opendc.experiments.overprovision.k8s
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import org.opendc.compute.service.ComputeService
 import org.opendc.compute.service.scheduler.ComputeScheduler
@@ -13,21 +14,29 @@ import kotlinx.coroutines.launch
 import org.opendc.compute.simulator.SimHost
 import org.opendc.compute.workload.FailureModel
 import org.opendc.compute.workload.createComputeScheduler
+import org.opendc.compute.workload.export.parquet.ParquetComputeMetricExporter
 import org.opendc.compute.workload.telemetry.SdkTelemetryManager
 import org.opendc.compute.workload.topology.HostSpec
 import org.opendc.compute.workload.topology.Topology
 import org.opendc.experiments.capelin.topology.clusterTopology
+import org.opendc.simulator.core.runBlockingSimulation
 import org.opendc.simulator.flow.FlowEngine
+import org.opendc.telemetry.sdk.metrics.export.CoroutineMetricReader
 import java.io.File
 import java.util.*
 
-class MultitenantComputeService(private val context: CoroutineContext,
-                                private val clock: Clock,
-                                private val telemetry: TelemetryManager,
-                                scheduler: ComputeScheduler,
-                                private val failureModel: FailureModel? = null,
-                                private val interferenceModel: VmInterferenceModel? = null,
-                                schedulingQuantum: Duration = Duration.ofMinutes(5)) {
+class MultitenantComputeService(
+    private val scope: CoroutineScope,
+    private val context: CoroutineContext,
+    private val clock: Clock,
+    private val telemetry: TelemetryManager,
+    scheduler: ComputeScheduler,
+    private val failureModel: FailureModel? = null,
+    private val interferenceModel: VmInterferenceModel? = null,
+    schedulingQuantum: Duration = Duration.ofMinutes(5),
+    val allocationPolicy: String = "random",
+    val id: Int = 0,
+    val repeat: Int = 0) {
     /**
      * The [ComputeService] that has been configured by the manager.
      */
@@ -44,15 +53,17 @@ class MultitenantComputeService(private val context: CoroutineContext,
 
     private val topology = clusterTopology(File("src/main/resources/topology", "k8s.txt"))
 
+    private val k8sTelemetry = SdkTelemetryManager(clock)
+
     init {
         this.service = createService(scheduler, schedulingQuantum)
     }
 
     public suspend fun run(tenantAmount: Int, traces: List<VirtualMachine>, seed: Long, submitImmediately: Boolean = false) {
-        val injector = failureModel?.createInjector(context, clock, service, Random(seed))
         val client = service.newClient()
-        val k8s = K8sComputeService(client, _engine, context, clock, SdkTelemetryManager(clock),
-            null, createComputeScheduler("random", Random(seed)))
+
+        val k8s = K8sComputeService(client, _engine, context, clock, k8sTelemetry,
+            null, createK8sScheduler(allocationPolicy, Random(seed)))
         k8s.apply(topology)
         k8s.run(traces)
     }
@@ -87,6 +98,7 @@ class MultitenantComputeService(private val context: CoroutineContext,
     }
 
     fun close() {
+        k8sTelemetry.close()
         service.close()
 
         for (host in _hosts) {

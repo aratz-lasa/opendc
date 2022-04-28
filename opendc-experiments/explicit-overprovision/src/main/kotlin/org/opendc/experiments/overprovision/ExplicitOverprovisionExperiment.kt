@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import org.opendc.compute.workload.*
 import org.opendc.compute.workload.export.parquet.ParquetComputeMetricExporter
 import org.opendc.compute.workload.telemetry.SdkTelemetryManager
+import org.opendc.compute.workload.util.VmInterferenceModelReader
 import org.opendc.harness.dsl.Experiment
 import org.opendc.harness.dsl.anyOf
 import org.opendc.simulator.core.runBlockingSimulation
@@ -31,6 +32,10 @@ public class ExplicitOverprovisionExperiment : Experiment(name = "small") {
     private val allocationPolicy: String by anyOf(
         "random"
     )
+    private val k8sAllocationPolicy: String by anyOf(
+        "overprovision",
+        "overprovision"
+    )
     private val workloadLoader = ComputeWorkloadLoader(File("src/main/resources/trace"))
 
     override fun doRun(repeat: Int) : Unit = runBlockingSimulation {
@@ -47,13 +52,23 @@ public class ExplicitOverprovisionExperiment : Experiment(name = "small") {
 
         val computeScheduler = createComputeScheduler(allocationPolicy, seeder, vmPlacements)
 
+        val perfInterferenceInput = checkNotNull(ExplicitOverprovisionExperiment::class.java.getResourceAsStream("/trace/bitbrains-small/bitbrains-perf-interference.json"))
+        val performanceInterferenceModel =
+            VmInterferenceModelReader()
+                .read(perfInterferenceInput)
+                .withSeed(seeder.nextLong())
+
         telemetry.registerMetricReader(CoroutineMetricReader(this, exporter))
 
         val runner = MultitenantComputeService(
+            this,
             coroutineContext,
             clock,
             telemetry,
             computeScheduler,
+            interferenceModel = performanceInterferenceModel,
+            allocationPolicy= k8sAllocationPolicy,
+            id = id, repeat = repeat
         )
 
         try{

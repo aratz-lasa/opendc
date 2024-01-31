@@ -67,7 +67,6 @@ public class FixedFlowSource(private val amount: Double, private val utilization
             conn.push(limit)
             duration
         } else {
-            println("CLOSED FLOW $remainingAmount $lastPull $consumed")
             conn.close()
             Long.MAX_VALUE
         }

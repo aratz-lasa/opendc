@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2021 AtLarge Research
  *
@@ -25,10 +27,23 @@ description = "API for OpenDC Experiment Harness"
 /* Build configuration */
 plugins {
     `kotlin-library-conventions`
+    kotlin("jvm")
 }
 
 dependencies {
     api(libs.junit.platform.commons)
 
     implementation(libs.kotlin.logging)
+    implementation(kotlin("stdlib-jdk8"))
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

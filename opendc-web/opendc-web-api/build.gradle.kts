@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2020 AtLarge Research
  *
@@ -30,6 +32,7 @@ plugins {
     `testing-conventions`
     `jacoco-conventions`
     id("io.quarkus")
+    kotlin("jvm")
 }
 
 dependencies {
@@ -59,6 +62,7 @@ dependencies {
     testImplementation(libs.restassured.kotlin)
     testImplementation(libs.quarkus.test.security)
     testImplementation(libs.quarkus.jdbc.h2)
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 allOpen {
@@ -105,4 +109,15 @@ tasks.quarkusGenerateCode {
 tasks.quarkusGenerateCodeTests {
     mustRunAfter(projects.opendcWeb.opendcWebUiQuarkus.deployment)
     mustRunAfter(projects.opendcWeb.opendcWebUi)
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

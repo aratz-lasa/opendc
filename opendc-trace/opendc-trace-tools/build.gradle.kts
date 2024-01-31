@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2021 AtLarge Research
  *
@@ -26,6 +28,7 @@ description = "Tools for working with workload traces"
 plugins {
     `kotlin-conventions`
     application
+    kotlin("jvm")
 }
 
 application {
@@ -42,4 +45,16 @@ dependencies {
     runtimeOnly(projects.opendcTrace.opendcTraceAzure)
     runtimeOnly(projects.opendcTrace.opendcTraceWtf)
     runtimeOnly(libs.log4j.slf4j)
+    implementation(kotlin("stdlib-jdk8"))
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

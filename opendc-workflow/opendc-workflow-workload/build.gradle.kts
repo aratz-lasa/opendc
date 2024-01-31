@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2021 AtLarge Research
  *
@@ -26,6 +28,7 @@ description = "Support library for simulating workflows with OpenDC"
 plugins {
     `kotlin-library-conventions`
     `testing-conventions`
+    kotlin("jvm")
 }
 
 dependencies {
@@ -35,4 +38,16 @@ dependencies {
     implementation(projects.opendcTrace.opendcTraceApi)
     implementation(projects.opendcTelemetry.opendcTelemetrySdk)
     implementation(libs.opentelemetry.semconv)
+    implementation(kotlin("stdlib-jdk8"))
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

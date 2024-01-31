@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2021 AtLarge Research
  *
@@ -27,6 +29,7 @@ plugins {
     `testing-conventions`
     `jacoco-conventions`
     `benchmark-conventions`
+    kotlin("jvm")
 }
 
 dependencies {
@@ -37,4 +40,16 @@ dependencies {
     testImplementation(libs.slf4j.simple)
 
     jmhImplementation(projects.opendcSimulator.opendcSimulatorCore)
+    implementation(kotlin("stdlib-jdk8"))
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

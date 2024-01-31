@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2020 AtLarge Research
  *
@@ -26,14 +28,27 @@ description = "Web communication protocol for OpenDC"
 plugins {
     `kotlin-library-conventions`
     id("org.kordamp.gradle.jandex") // Necessary for Quarkus to process annotations
+    kotlin("jvm")
 }
 
 dependencies {
     implementation(libs.jackson.annotations)
     implementation(libs.jakarta.validation)
     implementation(libs.microprofile.openapi.api)
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions.javaParameters = true
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

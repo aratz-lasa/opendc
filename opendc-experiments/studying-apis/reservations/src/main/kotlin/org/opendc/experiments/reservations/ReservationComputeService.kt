@@ -103,7 +103,13 @@ class ReservationComputeService(
                     }
 
                     launch {
-                        val workload = SimRuntimeWorkload((entry.stopTime.toEpochMilli()-entry.startTime.toEpochMilli()), 1.0)
+                        val workload = SimRuntimeWorkload(
+                            (entry.stopTime.toEpochMilli()-entry.startTime.toEpochMilli()),
+                            1.0,
+                            entry.cpuCount,
+                            entry.cpuCapacity,
+                            clock=clock,
+                        )
 
                         val server = client.newServer(
                             entry.name,

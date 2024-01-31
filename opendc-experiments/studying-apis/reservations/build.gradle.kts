@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2019 AtLarge Research
  *
@@ -25,6 +27,7 @@ description = "Experiments for the Reservation extension"
 /* Build configuration */
 plugins {
     `experiment-conventions`
+    kotlin("jvm")
 }
 
 dependencies {
@@ -52,4 +55,16 @@ dependencies {
     runtimeOnly(projects.opendcTrace.opendcTraceOpendc)
 
     testImplementation(libs.log4j.slf4j)
+    implementation(kotlin("stdlib-jdk8"))
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

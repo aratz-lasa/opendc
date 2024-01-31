@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2021 AtLarge Research
  *
@@ -26,6 +28,7 @@ description = "Support library for simulating VM-based workloads with OpenDC"
 plugins {
     `kotlin-library-conventions`
     `testing-conventions`
+    kotlin("jvm")
 }
 
 dependencies {
@@ -43,4 +46,16 @@ dependencies {
     implementation(libs.jackson.databind)
     implementation(libs.jackson.module.kotlin)
     implementation(kotlin("reflect"))
+    implementation(kotlin("stdlib-jdk8"))
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }
